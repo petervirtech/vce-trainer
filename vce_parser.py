@@ -199,11 +199,12 @@ def _get_az305_questions(variation_seed: int) -> List[Question]:
     
     # Use variation seed to determine which questions to prioritize
     import random
-    random.seed(variation_seed)
+    # Use local random instance to avoid affecting global state
+    local_random = random.Random(variation_seed)
     
     # Shuffle the questions based on the seed for variation
     shuffled_questions = all_questions.copy()
-    random.shuffle(shuffled_questions)
+    local_random.shuffle(shuffled_questions)
     
     return shuffled_questions
 
@@ -290,11 +291,12 @@ def _get_az104_questions(variation_seed: int) -> List[Question]:
     
     # Use variation seed to determine which questions to prioritize
     import random
-    random.seed(variation_seed)
+    # Use local random instance to avoid affecting global state
+    local_random = random.Random(variation_seed)
     
     # Shuffle the questions based on the seed for variation
     shuffled_questions = all_questions.copy()
-    random.shuffle(shuffled_questions)
+    local_random.shuffle(shuffled_questions)
     
     return shuffled_questions
 

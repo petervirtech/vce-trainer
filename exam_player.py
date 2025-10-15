@@ -77,23 +77,30 @@ class ExamPlayer:
         # Set up question order
         self.question_order = list(range(len(self.exam.questions)))
         
-        if max_questions > 0 and max_questions < len(self.question_order):
-            # Limit to max_questions
-            if randomize_questions:
+        if randomize_questions:
+            # Create a new random instance with high entropy for true randomness
+            import random as random_module
+            import os
+            session_random = random_module.Random()
+            # Use multiple sources of entropy: current time, process ID, and OS random
+            entropy_seed = int(time.time() * 1000000) + os.getpid() + int.from_bytes(os.urandom(4), 'big')
+            session_random.seed(entropy_seed)
+            
+            if max_questions > 0 and max_questions < len(self.question_order):
                 # Randomly select max_questions
-                # Randomly select max_questions
-                self.question_order = random.sample(self.question_order, max_questions)
+                self.question_order = session_random.sample(self.question_order, max_questions)
                 print(f"🎲 Randomized: Selected questions {self.question_order}")
             else:
+                # Shuffle all questions
+                session_random.shuffle(self.question_order)
+                print(f"🔀 Randomized: Shuffled all {len(self.question_order)} questions")
+        else:
+            if max_questions > 0 and max_questions < len(self.question_order):
                 # Take first max_questions
                 self.question_order = self.question_order[:max_questions]
                 print(f"📋 Sequential: Using questions {self.question_order}")
-        elif randomize_questions:
-            # Shuffle all questions
-            random.shuffle(self.question_order)
-            print(f"🔀 Randomized: Shuffled all {len(self.question_order)} questions")
-        else:
-            print(f"📝 Sequential: Using original question order")
+            else:
+                print(f"📝 Sequential: Using original question order")
 
         # Update exam total questions to reflect the limited set
         self.exam.total_questions = len(self.question_order)
