@@ -1,42 +1,53 @@
 # VCE Exam Player
 
-A comprehensive exam simulation application that can read and play VCE (Visual CertExam) files for training and testing purposes.
+A modern, comprehensive exam simulation application for VCE (Visual CertExam) certification training files. Features both command-line and GUI interfaces with full session management, progress tracking, and review capabilities.
 
-## Features
+## ✨ Key Features
 
-- **VCE File Parsing**: Reads and parses .vce and .vcex exam files
-- **Interactive Exam Interface**: Command-line interface for taking exams
-- **Session Management**: Save and resume exam sessions
-- **Progress Tracking**: Track answered questions and exam progress
-- **Scoring System**: Automatic scoring with pass/fail determination
-- **Review Mode**: Review completed exams with correct/incorrect indicators
-- **Question Navigation**: Jump between questions, mark for review
-- **Multiple Question Types**: Support for single and multiple choice questions
+- 🎯 **Complete VCE Support**: Reads .vce and .vcex files with advanced parsing
+- 🖥️ **Modern GUI Interface**: Contemporary dark theme with professional design
+- 💾 **Session Management**: Save, resume, and review exam sessions
+- 🔀 **Question Randomization**: Randomize question order for varied practice
+- 📊 **Progress Tracking**: Real-time monitoring with visual indicators
+- 🎨 **Review Mode**: Color-coded feedback with detailed explanations
+- ⏱️ **Timer Support**: Optional time limits with warnings
+- 🎮 **Interactive Navigation**: Intuitive controls with keyboard shortcuts
 
-## Installation
+## 🚀 Quick Start
 
-1. **Create a virtual environment** (recommended):
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\\Scripts\\activate
-   ```
+### Prerequisites
+- Python 3.8+
+- PyQt6
 
-2. **Clone or download the project files**:
-   - `vce_parser.py` - VCE file parser module
-   - `exam_player.py` - Core exam player functionality
-   - `exam_interface.py` - Interactive command-line interface
-
-## Usage
-
-### Starting the Exam Interface
-
+### Installation & Setup
 ```bash
-# Activate virtual environment
-source venv/bin/activate
+# Clone and navigate to project
+cd vce-exam-player
 
-# Start the exam interface with a VCE file
-python3 exam_interface.py "path/to/your/exam.vce"
+# Set up virtual environment
+python3 -m venv venv
+source venv/bin/activate  # macOS/Linux
+
+# Install dependencies
+pip install PyQt6
 ```
+
+### Launch Application
+```bash
+# GUI Version (Recommended)
+python3 main_gui.py
+
+# Command Line Version
+python3 exam_interface.py "path/to/exam.vce"
+```
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+- **[User Guide](docs/USER_GUIDE.md)** - Complete usage instructions and tutorials
+- **[Technical Guide](docs/TECHNICAL_GUIDE.md)** - Architecture and implementation details  
+- **[Development Log](docs/DEVELOPMENT_LOG.md)** - Project history and evolution
 
 ### Available Commands
 

@@ -89,35 +89,59 @@ class MainWindow(QMainWindow):
         """Set up the header section."""
         header_layout = QHBoxLayout()
 
-        # Logo/title area
-        title_label = QLabel("VCE Exam Player")
-        title_label.setStyleSheet("""
-            font-size: 24px;
-            font-weight: bold;
-            color: #FB8C00;
-            padding: 10px;
+        # Modern logo/title area with icon
+        title_container = QWidget()
+        title_container_layout = QHBoxLayout(title_container)
+        title_container_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # App icon (using emoji for now)
+        icon_label = QLabel("🎓")
+        icon_label.setStyleSheet("""
+            font-size: 32px;
+            padding: 8px;
         """)
-        header_layout.addWidget(title_label)
+        title_container_layout.addWidget(icon_label)
+        
+        # Title with modern typography
+        title_label = QLabel("VCE Exam Player")
+        title_label.setProperty("class", "title")
+        title_label.setStyleSheet("""
+            font-size: 28px;
+            font-weight: 700;
+            color: #F8FAFC;
+            padding: 12px 8px;
+            background: none;
+            border: none;
+        """)
+        title_container_layout.addWidget(title_label)
+        
+        title_container_layout.addStretch()
+        header_layout.addWidget(title_container)
 
         header_layout.addStretch()
 
-        # Action buttons
-        self.load_button = QPushButton("Load VCE File")
+        # Modern action button with icon
+        self.load_button = QPushButton("📁 Load VCE File")
         self.load_button.setStyleSheet("""
             QPushButton {
-                background-color: #FB8C00;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #3B82F6, stop:1 #2563EB);
                 color: white;
                 border: none;
-                padding: 12px 24px;
-                border-radius: 20px;
+                padding: 16px 32px;
+                border-radius: 16px;
                 font-size: 16px;
-                font-weight: 500;
+                font-weight: 600;
+                min-width: 160px;
             }
             QPushButton:hover {
-                background-color: #FC9D26;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #60A5FA, stop:1 #3B82F6);
+    
             }
             QPushButton:pressed {
-                background-color: #E67E00;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #2563EB, stop:1 #1D4ED8);
             }
         """)
         self.load_button.clicked.connect(self.load_vce_file)
@@ -155,6 +179,18 @@ class MainWindow(QMainWindow):
         load_action.setShortcut(QKeySequence.StandardKey.Open)
         load_action.triggered.connect(self.load_vce_file)
         file_menu.addAction(load_action)
+
+        file_menu.addSeparator()
+
+        resume_action = QAction('Resume Session', self)
+        resume_action.setShortcut(QKeySequence('Ctrl+R'))
+        resume_action.triggered.connect(self.show_resume_dialog)
+        file_menu.addAction(resume_action)
+
+        review_action = QAction('Review Completed Session', self)
+        review_action.setShortcut(QKeySequence('Ctrl+Shift+R'))
+        review_action.triggered.connect(self.show_review_dialog)
+        file_menu.addAction(review_action)
 
         file_menu.addSeparator()
 
@@ -274,6 +310,9 @@ class MainWindow(QMainWindow):
         limit_layout.addStretch()
         layout.addLayout(limit_layout)
 
+        # Recent sessions section
+        self.setup_recent_sessions(layout)
+
         layout.addStretch()
 
         # Add to stacked widget
@@ -323,7 +362,13 @@ class MainWindow(QMainWindow):
             # Set up session manager
             self.session_manager.set_exam_player(self.exam_player)
 
-            # Create exam taker widget
+            # Clear any existing exam widgets to prevent caching
+            while self.stacked_widget.count() > 1:  # Keep welcome screen (index 0)
+                widget = self.stacked_widget.widget(1)
+                self.stacked_widget.removeWidget(widget)
+                widget.deleteLater()
+
+            # Create new exam taker widget
             self.exam_taker_widget = ExamTakerWidget(self.exam_player)
             self.exam_taker_widget.exam_completed.connect(self.show_results)
             self.stacked_widget.addWidget(self.exam_taker_widget)
@@ -454,6 +499,259 @@ class MainWindow(QMainWindow):
                 self.question_limit_spin.setValue(self.max_questions)
 
             self.save_settings()
+
+    def show_resume_dialog(self):
+        """Show dialog to resume a session."""
+        resumable_sessions = self.session_manager.get_resumable_sessions()
+        
+        if not resumable_sessions:
+            QMessageBox.information(
+                self,
+                "No Sessions",
+                "No resumable sessions found.\nStart a new exam to create a session."
+            )
+            return
+        
+        # Create session selection dialog
+        from .session_dialog import SessionSelectionDialog
+        dialog = SessionSelectionDialog(resumable_sessions, "Resume Session", self)
+        
+        if dialog.exec():
+            selected_session = dialog.get_selected_session()
+            if selected_session:
+                self.resume_session(selected_session)
+
+    def show_review_dialog(self):
+        """Show dialog to review a completed session."""
+        completed_sessions = self.session_manager.get_completed_sessions()
+        
+        if not completed_sessions:
+            QMessageBox.information(
+                self,
+                "No Sessions",
+                "No completed sessions found.\nComplete an exam to review results."
+            )
+            return
+        
+        # Create session selection dialog
+        from .session_dialog import SessionSelectionDialog
+        dialog = SessionSelectionDialog(completed_sessions, "Review Session", self)
+        
+        if dialog.exec():
+            selected_session = dialog.get_selected_session()
+            if selected_session:
+                self.review_session(selected_session)
+
+    def resume_session(self, session_info: dict):
+        """Resume a session from session info."""
+        try:
+            session_id = session_info['session_id']
+            
+            # Load the session
+            session = self.session_manager.load_session(session_id)
+            if not session:
+                QMessageBox.critical(self, "Error", f"Failed to load session {session_id}")
+                return
+            
+            # We need to recreate the exam player with the original VCE file
+            # For now, we'll ask the user to select the VCE file
+            QMessageBox.information(
+                self,
+                "Select VCE File",
+                f"Please select the original VCE file for session:\n{session.exam_title}"
+            )
+            
+            # Open file dialog
+            file_dialog = QFileDialog(self)
+            file_dialog.setWindowTitle("Select Original VCE File")
+            file_dialog.setNameFilter("VCE Files (*.vce *.vcex);;All Files (*)")
+            
+            if file_dialog.exec():
+                selected_files = file_dialog.selectedFiles()
+                if selected_files:
+                    file_path = Path(selected_files[0])
+                    
+                    # Load the exam
+                    from exam_player import ExamPlayer
+                    self.exam_player = ExamPlayer(str(file_path))
+                    
+                    # Restore the session
+                    self.exam_player.current_session = session
+                    
+                    # Set up session manager
+                    self.session_manager.set_exam_player(self.exam_player)
+                    
+                    # Clear existing widgets
+                    while self.stacked_widget.count() > 1:
+                        widget = self.stacked_widget.widget(1)
+                        self.stacked_widget.removeWidget(widget)
+                        widget.deleteLater()
+                    
+                    # Create exam taker widget
+                    self.exam_taker_widget = ExamTakerWidget(self.exam_player)
+                    self.exam_taker_widget.exam_completed.connect(self.show_results)
+                    self.stacked_widget.addWidget(self.exam_taker_widget)
+                    self.stacked_widget.setCurrentWidget(self.exam_taker_widget)
+                    
+                    # Update UI
+                    self.exam_info_label.setText(f"Exam: {session.exam_title} (Resumed)")
+                    
+                    QMessageBox.information(
+                        self,
+                        "Session Resumed",
+                        f"Successfully resumed session from {session.start_time[:10]}"
+                    )
+        
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to resume session: {e}")
+
+    def review_session(self, session_info: dict):
+        """Review a completed session."""
+        try:
+            session_id = session_info['session_id']
+            
+            # Load the session
+            session = self.session_manager.load_session(session_id)
+            if not session:
+                QMessageBox.critical(self, "Error", f"Failed to load session {session_id}")
+                return
+            
+            # Create a dummy exam player for review
+            # We'll create a minimal exam structure from the session
+            from exam_player import ExamPlayer, Exam, Question
+            
+            # Create dummy questions based on session answers
+            questions = []
+            if session.answers:
+                for q_num, user_answer in session.answers.items():
+                    question = Question(
+                        id=q_num,
+                        type="single",
+                        question_text=f"Question {q_num} (from completed session)",
+                        answers=["Answer A", "Answer B", "Answer C", "Answer D"],
+                        correct_answers=[0],  # Will be updated from session
+                        explanation="Review from completed session"
+                    )
+                    questions.append(question)
+            
+            # Create dummy exam
+            dummy_exam = Exam(
+                title=session.exam_title,
+                description="Review Session",
+                author="Session Review",
+                version="1.0",
+                total_questions=len(questions),
+                passing_score=70,
+                time_limit=None,
+                questions=questions
+            )
+            
+            # Create exam player with dummy exam
+            self.exam_player = ExamPlayer.__new__(ExamPlayer)
+            self.exam_player.exam = dummy_exam
+            self.exam_player.current_session = session
+            self.exam_player.question_order = list(range(len(questions)))
+            
+            # Show results viewer
+            self.show_results()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to review session: {e}")
+
+    def setup_recent_sessions(self, parent_layout):
+        """Set up recent sessions section on welcome screen."""
+        # Recent sessions header
+        recent_label = QLabel("Recent Sessions")
+        recent_label.setStyleSheet("""
+            font-size: 18px;
+            font-weight: bold;
+            color: #FB8C00;
+            margin: 20px 20px 10px 20px;
+        """)
+        parent_layout.addWidget(recent_label)
+
+        # Recent sessions list
+        from PyQt6.QtWidgets import QListWidget, QListWidgetItem
+        self.recent_sessions_list = QListWidget()
+        self.recent_sessions_list.setMaximumHeight(150)
+        self.recent_sessions_list.setStyleSheet("""
+            QListWidget {
+                border: 1px solid #9C8978;
+                border-radius: 8px;
+                background-color: #15120E;
+                color: #EAE1D9;
+                font-size: 12px;
+                margin: 0px 20px;
+            }
+            QListWidget::item {
+                padding: 6px;
+                border-bottom: 1px solid #51453A;
+            }
+            QListWidget::item:hover {
+                background-color: #6B5B4F;
+            }
+        """)
+        self.recent_sessions_list.itemDoubleClicked.connect(self.on_recent_session_clicked)
+        parent_layout.addWidget(self.recent_sessions_list)
+
+        # Load recent sessions
+        self.load_recent_sessions()
+
+    def load_recent_sessions(self):
+        """Load and display recent sessions."""
+        try:
+            # Get recent sessions (both resumable and completed)
+            all_sessions = self.session_manager.list_sessions()
+            recent_sessions = all_sessions[:5]  # Show last 5 sessions
+
+            self.recent_sessions_list.clear()
+
+            if not recent_sessions:
+                from PyQt6.QtWidgets import QListWidgetItem
+                item = QListWidgetItem("No recent sessions found. Load a VCE file to start.")
+                item.setData(Qt.ItemDataRole.UserRole, None)
+                self.recent_sessions_list.addItem(item)
+                return
+
+            from PyQt6.QtWidgets import QListWidgetItem
+            for session in recent_sessions:
+                # Format session display
+                exam_title = session.get('exam_title', 'Unknown Exam')[:40]
+                status = session.get('status', 'unknown')
+                score = session.get('score')
+
+                if status == 'completed' and score is not None:
+                    display_text = f"{exam_title}... - Score: {score}% ({'PASSED' if score >= 70 else 'FAILED'})"
+                else:
+                    display_text = f"{exam_title}... - {status.title()}"
+
+                item = QListWidgetItem(display_text)
+                item.setData(Qt.ItemDataRole.UserRole, session)
+                self.recent_sessions_list.addItem(item)
+
+        except Exception as e:
+            print(f"Error loading recent sessions: {e}")
+
+    def on_recent_session_clicked(self, item):
+        """Handle recent session double-click."""
+        session_data = item.data(Qt.ItemDataRole.UserRole)
+        if not session_data:
+            return
+
+        status = session_data.get('status', 'unknown')
+
+        if status == 'in_progress':
+            # Resume session
+            self.resume_session(session_data)
+        elif status == 'completed':
+            # Review session
+            self.review_session(session_data)
+        else:
+            QMessageBox.information(
+                self,
+                "Unknown Status",
+                f"Cannot handle session with status: {status}"
+            )
 
     def on_session_saved(self, session_id: str):
         """Handle session saved signal."""

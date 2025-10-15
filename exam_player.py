@@ -70,24 +70,30 @@ class ExamPlayer:
         print(f"Author: {self.exam.author}")
 
     def start_new_session(self, randomize_questions: bool = False, max_questions: int = 0) -> str:
-        # Ensure consistent question ordering for review purposes
-        randomize_questions = False
         """Start a new exam session."""
         session_id = f"session_{int(time.time())}"
         timestamp = datetime.now().isoformat()
 
         # Set up question order
         self.question_order = list(range(len(self.exam.questions)))
+        
         if max_questions > 0 and max_questions < len(self.question_order):
             # Limit to max_questions
             if randomize_questions:
                 # Randomly select max_questions
+                # Randomly select max_questions
                 self.question_order = random.sample(self.question_order, max_questions)
+                print(f"🎲 Randomized: Selected questions {self.question_order}")
             else:
                 # Take first max_questions
                 self.question_order = self.question_order[:max_questions]
+                print(f"📋 Sequential: Using questions {self.question_order}")
         elif randomize_questions:
+            # Shuffle all questions
             random.shuffle(self.question_order)
+            print(f"🔀 Randomized: Shuffled all {len(self.question_order)} questions")
+        else:
+            print(f"📝 Sequential: Using original question order")
 
         # Update exam total questions to reflect the limited set
         self.exam.total_questions = len(self.question_order)
@@ -218,9 +224,14 @@ class ExamPlayer:
         if not self.current_session.answers:
             return 0, False
 
-        for question in self.exam.questions:
-            if question.id in self.current_session.answers:
-                user_answer = self.current_session.answers[question.id]
+        # Iterate through question numbers (1, 2, 3...) not question IDs
+        for question_num in range(1, total_questions + 1):
+            if question_num in self.current_session.answers:
+                # Get the actual question object using the question order
+                question_index = self.question_order[question_num - 1]  # Convert to 0-based index
+                question = self.exam.questions[question_index]
+                
+                user_answer = self.current_session.answers[question_num]
                 # Check if user's selected answers match correct answers
                 if set(user_answer.selected_answers) == set(question.correct_answers):
                     correct_answers += 1
@@ -228,7 +239,13 @@ class ExamPlayer:
                 else:
                     user_answer.is_correct = False
 
-        score = int((correct_answers / total_questions) * 100)
+        # Calculate score based on answered questions
+        answered_questions = len(self.current_session.answers)
+        if answered_questions > 0:
+            score = int((correct_answers / answered_questions) * 100)
+        else:
+            score = 0
+        
         passed = score >= self.exam.passing_score
 
         self.current_session.score = score

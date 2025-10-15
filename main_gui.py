@@ -16,6 +16,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QPalette, QColor
 
 from gui.main_window import MainWindow
+from modern_theme import apply_modern_theme
 
 
 def setup_application_style(app: QApplication):
@@ -193,8 +194,8 @@ def main():
             # Fallback for older PyQt6 versions
             pass
 
-        # Set up styling
-        setup_application_style(app)
+        # Apply modern theme
+        apply_modern_theme(app)
 
         # Create and show main window
         window = MainWindow()

@@ -63,21 +63,23 @@ class ExamTakerWidget(QWidget):
         self.question_header.setStyleSheet("font-weight: bold; font-size: 18px; color: #FB8C00;")
         question_layout.addWidget(self.question_header)
 
-        # Question text
+        # Question text - more compact
         self.question_text = QTextEdit()
         self.question_text.setReadOnly(True)
-        self.question_text.setMinimumHeight(120)
+        self.question_text.setMinimumHeight(80)   # Further reduced to save space
+        self.question_text.setMaximumHeight(140)  # Reduced max height for more answer space
         self.question_text.setStyleSheet("""
             QTextEdit {
-                border: 1px solid #9C8978;
-                border-radius: 4px;
+                border: 1px solid rgba(75, 85, 99, 0.3);
+                border-radius: 8px;
                 padding: 12px;
-                background-color: #15120E;
-                color: #EAE1D9;
-                font-size: 16px;
+                background-color: rgba(24, 24, 27, 0.8);
+                color: #F3F4F6;
+                font-size: 15px;
+                line-height: 1.4;
             }
             QTextEdit:focus {
-                border: 2px solid #FB8C00;
+                border: 2px solid #3B82F6;
             }
         """)
         question_layout.addWidget(self.question_text)
@@ -86,24 +88,63 @@ class ExamTakerWidget(QWidget):
 
     def setup_answer_selection(self, parent_layout: QVBoxLayout):
         """Set up the answer selection area."""
-        answers_frame = QFrame()
-        answers_frame.setFrameStyle(QFrame.Shape.Box)
-        self.answers_layout = QVBoxLayout(answers_frame)
+        # Create answers container with proper sizing
+        answers_container = QWidget()
+        answers_container.setStyleSheet("""
+            QWidget {
+                background-color: rgba(24, 24, 27, 0.8);
+                border: 1px solid rgba(75, 85, 99, 0.3);
+                border-radius: 12px;
+                padding: 10px;
+            }
+        """)
+        
+        # Use a simple vertical layout
+        container_layout = QVBoxLayout(answers_container)
+        container_layout.setSpacing(8)
+        container_layout.setContentsMargins(16, 16, 16, 16)
 
+        # Answer selection label
         self.answers_label = QLabel("Select your answer(s):")
-        self.answers_label.setStyleSheet("font-weight: bold; font-size: 16px; color: #FB8C00; margin-top: 15px;")
-        self.answers_layout.addWidget(self.answers_label)
-
-        # Scroll area for answers
+        self.answers_label.setStyleSheet("""
+            font-weight: bold; 
+            font-size: 16px; 
+            color: #3B82F6; 
+            margin-bottom: 0px;
+        """)
+        container_layout.addWidget(self.answers_label)
+        
+        # Create scroll area for answers to ensure all are visible
         scroll_area = QScrollArea()
-        scroll_widget = QWidget()
-        self.scroll_layout = QVBoxLayout(scroll_widget)
-        scroll_area.setWidget(scroll_widget)
         scroll_area.setWidgetResizable(True)
-        scroll_area.setMinimumHeight(200)
-        self.answers_layout.addWidget(scroll_area)
-
-        parent_layout.addWidget(answers_frame)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+        """)
+        
+        # Create widget to hold answer widgets
+        self.answers_widget = QWidget()
+        self.answers_widget.setStyleSheet("background-color: transparent;")
+        self.scroll_layout = QVBoxLayout(self.answers_widget)
+        self.scroll_layout.setSpacing(4)
+        self.scroll_layout.setContentsMargins(6, 6, 6, 6)
+        self.scroll_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        
+        scroll_area.setWidget(self.answers_widget)
+        scroll_area.setMinimumHeight(450)  # Much larger height to avoid scrolling
+        scroll_area.setMaximumHeight(500)  # Generous max height
+        
+        container_layout.addWidget(scroll_area)
+        
+        # Set much larger container height to accommodate all answers comfortably
+        answers_container.setMinimumHeight(520)
+        answers_container.setMaximumHeight(580)
+        
+        parent_layout.addWidget(answers_container)
 
     def setup_navigation(self, parent_layout: QVBoxLayout):
         """Set up the navigation and control buttons."""
@@ -119,6 +160,11 @@ class ExamTakerWidget(QWidget):
         self.mark_button.setCheckable(True)
         self.mark_button.clicked.connect(self.toggle_mark_question)
         nav_layout.addWidget(self.mark_button)
+
+        # Jump to question button
+        jump_button = QPushButton("Jump to Question (Ctrl+J)")
+        jump_button.clicked.connect(self.show_jump_dialog)
+        nav_layout.addWidget(jump_button)
 
         # Spacer
         nav_layout.addStretch()
@@ -224,6 +270,10 @@ class ExamTakerWidget(QWidget):
         # Question shortcut
         question_shortcut = QShortcut(QKeySequence("Ctrl+Q"), self)
         question_shortcut.activated.connect(lambda: self.tab_widget.setCurrentIndex(0))
+        
+        # Jump to question shortcut
+        jump_shortcut = QShortcut(QKeySequence("Ctrl+J"), self)
+        jump_shortcut.activated.connect(self.show_jump_dialog)
 
     def on_time_warning(self, minutes_remaining: int):
         """Handle time warning."""
@@ -254,11 +304,13 @@ class ExamTakerWidget(QWidget):
 
     def load_question(self, question_num: int):
         """Load and display a specific question."""
-        if not (1 <= question_num <= len(self.player.exam.questions)):
+        if not (1 <= question_num <= len(self.player.question_order)):
             return
 
         self.current_question_num = question_num
-        question = self.player.exam.questions[question_num - 1]
+        # Use question_order to get the correct question (handles randomization)
+        question_idx = self.player.question_order[question_num - 1]
+        question = self.player.exam.questions[question_idx]
 
         # Update progress
         total_questions = len(self.player.question_order)
@@ -292,19 +344,55 @@ class ExamTakerWidget(QWidget):
         is_multiple_choice = len(question.correct_answers) > 1
 
         for i, answer_text in enumerate(question.answers):
+            # Create widget
             if is_multiple_choice:
-                # Checkboxes for multiple choice
                 widget = QCheckBox(f"{chr(65 + i)}. {answer_text}")
                 widget.stateChanged.connect(self.on_answer_changed)
             else:
-                # Radio buttons for single choice
                 widget = QRadioButton(f"{chr(65 + i)}. {answer_text}")
                 self.button_group.addButton(widget, i)
                 widget.toggled.connect(self.on_answer_changed)
 
+            # Clean, modern styling optimized for 4 answers
+            widget.setStyleSheet("""
+                QCheckBox, QRadioButton {
+                    font-size: 14px;
+                    font-weight: 500;
+                    color: #F3F4F6;
+                    padding: 8px 12px;
+                    margin: 2px 0;
+                    background-color: rgba(39, 39, 42, 0.8);
+                    border: 1px solid rgba(75, 85, 99, 0.5);
+                    border-radius: 8px;
+                }
+                QCheckBox:hover, QRadioButton:hover {
+                    background-color: rgba(59, 130, 246, 0.1);
+                    border: 1px solid rgba(96, 165, 250, 0.7);
+                }
+                QCheckBox:checked, QRadioButton:checked {
+                    background-color: rgba(59, 130, 246, 0.3);
+                    border: 2px solid #3B82F6;
+                    color: #FFFFFF;
+                    font-weight: 600;
+                }
+                QCheckBox::indicator, QRadioButton::indicator {
+                    width: 16px;
+                    height: 16px;
+                }
+            """)
+            
+            # Set optimal height for fitting 4 answers
+            widget.setMinimumHeight(42)
+            widget.setMaximumHeight(55)
+            
+            # Add to the answers layout
             self.scroll_layout.addWidget(widget)
             self.answer_widgets.append(widget)
 
+        # Ensure proper layout updates
+        self.answers_widget.adjustSize()
+        self.answers_widget.updateGeometry()
+        
         # Load existing answers if any
         self.load_existing_answers()
 
@@ -411,3 +499,21 @@ class ExamTakerWidget(QWidget):
     def get_progress_info(self) -> dict:
         """Get current progress information."""
         return self.player.show_progress()
+
+    def show_jump_dialog(self):
+        """Show dialog to jump to a specific question."""
+        from PyQt6.QtWidgets import QInputDialog
+        
+        total_questions = len(self.player.question_order)
+        
+        question_num, ok = QInputDialog.getInt(
+            self,
+            "Jump to Question",
+            f"Enter question number (1-{total_questions}):",
+            value=self.current_question_num,
+            min=1,
+            max=total_questions
+        )
+        
+        if ok and question_num != self.current_question_num:
+            self.jump_to_question(question_num)
