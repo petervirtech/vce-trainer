@@ -385,17 +385,6 @@ class MainWindow(QMainWindow):
             # Emit signal that exam is loaded
             self.exam_loaded.emit()
 
-            # Show exam loaded message
-            QMessageBox.information(
-                self,
-                "Exam Loaded",
-                f"Exam loaded successfully!\n"
-                f"Title: {exam_title}\n"
-                f"Questions: {self.exam_player.exam.total_questions}\n"
-                f"Session ID: {session_id}\n"
-                f"Ready to start taking the exam."
-            )
-
         except Exception as e:
             self.progress_bar.setVisible(False)
             self.status_label.setText("GUI test failed")

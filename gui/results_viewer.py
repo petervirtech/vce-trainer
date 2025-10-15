@@ -191,8 +191,11 @@ class ResultsViewerWidget(QWidget):
         self.explanation_text = QTextEdit()
         self.explanation_text.setReadOnly(True)
         self.explanation_text.setPlainText("Explanations are not available in the current VCE file format.\n\nTo add explanations, the VCE parser would need to be extended to extract explanation data if present in the file, or explanations could be provided separately.")
-        self.explanation_text.setMinimumHeight(200)  # Increased for better readability
-        self.explanation_text.setMaximumHeight(300)  # Increased to avoid scrolling
+        self.explanation_text.setMinimumHeight(150)  # Reasonable minimum height
+        self.explanation_text.setMaximumHeight(180)  # Allow scrolling for longer content
+        # Ensure scrollbars are enabled
+        self.explanation_text.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.explanation_text.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.explanation_text.setStyleSheet("""
             QTextEdit {
                 border: 1px solid #9C8978;
@@ -204,6 +207,25 @@ class ResultsViewerWidget(QWidget):
             }
             QTextEdit:focus {
                 border: 2px solid #FB8C00;
+            }
+            /* Modern scrollbar styling */
+            QScrollBar:vertical {
+                background: rgba(24, 24, 27, 0.5);
+                width: 12px;
+                border-radius: 6px;
+                margin: 0;
+            }
+            QScrollBar::handle:vertical {
+                background: rgba(75, 85, 99, 0.8);
+                border-radius: 6px;
+                min-height: 30px;
+                margin: 2px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: rgba(107, 114, 128, 0.9);
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
             }
         """)
         detail_layout.addWidget(self.explanation_text)
@@ -343,27 +365,24 @@ Correct Answers: {correct_answers}/{answered_questions}
                         if url_match:
                             url = url_match.group(1)
                             explanation_text = (
-                                "The correct answer(s) are highlighted above in the list.\n\n"
                                 "Explanation:\n"
-                                f"{question.explanation}\n\n"
+                                f"{question.explanation}\n"
                                 "Why this is correct:\n"
                                 "• The highlighted answer(s) are the officially correct response(s) for this question\n"
                                 "💡 Tip: Click the Perplexity link above to get AI-generated explanation with full context!"
                             )
                         else:
                             explanation_text = (
-                              
                                 "Explanation:\n"
-                                f"{question.explanation}\n\n"
+                                f"{question.explanation}\n"
                                 "Why this is correct:\n"
                                 "• The highlighted answer(s) are the officially correct response(s) for this question\n"
                                 "• Your selected answer(s) are marked with ✗"
                             )
                     else:
                         explanation_text = (
-                           
                             "Explanation:\n"
-                            f"{question.explanation}\n\n"
+                            f"{question.explanation}\n"
                             "Why this is correct:\n"
                             "• The highlighted answer(s) are the officially correct response(s) for this question\n"
                             "• Your selected answer(s) are marked with ✗"
@@ -373,7 +392,7 @@ Correct Answers: {correct_answers}/{answered_questions}
                     self.explanation_text.setPlainText(
                         "Why this is correct:\n"
                         "• The highlighted answer(s) are the officially correct response(s) for this question\n"
-                        "• Your selected answer(s) are marked with ✗\n\n"
+                        "• Your selected answer(s) are marked with ✗\n"
                         "Note: Detailed explanation not available for this question.\n"
                         "For learning purposes, you may want to:\n"
                         "• Research the topic in Microsoft documentation\n"
@@ -397,7 +416,10 @@ Correct Answers: {correct_answers}/{answered_questions}
                 else:
                     self.explanation_text.setPlainText("This question was answered correctly!")
         else:
-            self.explanation_text.setPlainText("This question was not answered.")
+            self.explanation_text.setPlainText(
+                "This question was not answered.\n"
+            f"Explanation:\n{question.explanation}
+            )
 
     def format_answers_display(self, question, display_idx: int) -> str:
         """Format the answers display with user's selection and correct answers."""
@@ -470,17 +492,17 @@ Correct Answers: {correct_answers}/{answered_questions}
                 # Not selected, not correct - neutral
                 lines.append(f'<div style="{neutral_style}">○ {prefix}. {escaped_text}</div>')
 
-        # Add CSS for better spacing and layout
+        # Add CSS for compact spacing
         html_content = f"""
         <style>
         div {{
-            margin: 1px 0;
-            padding: 1px;
-            line-height: 1.4;
+            margin: 0;
+            padding: 4px 6px;
+            line-height: 1.2;
             word-wrap: break-word;
         }}
         </style>
-        {'<br>'.join(lines)}
+        {''.join(lines)}
         """
         return html_content
 
