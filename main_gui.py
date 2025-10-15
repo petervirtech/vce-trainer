@@ -13,10 +13,47 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QPalette, QColor
+from PyQt6.QtGui import QFont, QPalette, QColor, QIcon, QPixmap, QPainter
 
 from gui.main_window import MainWindow
 from modern_theme import apply_modern_theme
+
+
+def create_app_icon() -> QIcon:
+    """Create a simple application icon programmatically."""
+    # Create a 64x64 pixmap
+    pixmap = QPixmap(64, 64)
+    pixmap.fill(QColor(0, 0, 0, 0))  # Transparent background
+    
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    
+    # Draw a modern exam/test icon
+    # Background circle
+    painter.setBrush(QColor(59, 130, 246))  # Blue background
+    painter.setPen(QColor(59, 130, 246))
+    painter.drawEllipse(4, 4, 56, 56)
+    
+    # Draw document/exam paper
+    painter.setBrush(QColor(255, 255, 255))
+    painter.setPen(QColor(255, 255, 255))
+    painter.drawRect(18, 14, 28, 36)
+    
+    # Draw lines representing text/questions
+    painter.setPen(QColor(59, 130, 246))
+    painter.drawLine(22, 20, 42, 20)  # Title line
+    painter.drawLine(22, 26, 38, 26)  # Question line 1
+    painter.drawLine(22, 30, 40, 30)  # Question line 2
+    painter.drawLine(22, 34, 36, 34)  # Question line 3
+    
+    # Draw checkmark
+    painter.setPen(QColor(16, 185, 129))  # Green checkmark
+    painter.drawLine(24, 40, 28, 44)
+    painter.drawLine(28, 44, 36, 36)
+    
+    painter.end()
+    
+    return QIcon(pixmap)
 
 
 def setup_application_style(app: QApplication):
@@ -193,6 +230,9 @@ def main():
         except AttributeError:
             # Fallback for older PyQt6 versions
             pass
+
+        # Set application icon
+        app.setWindowIcon(create_app_icon())
 
         # Apply modern theme
         apply_modern_theme(app)

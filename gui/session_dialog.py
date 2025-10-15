@@ -90,7 +90,7 @@ class SessionSelectionDialog(QDialog):
         # Buttons
         button_layout = QHBoxLayout()
         
-        self.select_button = QPushButton("Select")
+        self.select_button = QPushButton("✓ Select")
         self.select_button.setEnabled(False)
         self.select_button.clicked.connect(self.accept)
         self.select_button.setStyleSheet("""
@@ -112,7 +112,7 @@ class SessionSelectionDialog(QDialog):
             }
         """)
         
-        cancel_button = QPushButton("Cancel")
+        cancel_button = QPushButton("✕ Cancel")
         cancel_button.clicked.connect(self.reject)
         cancel_button.setStyleSheet("""
             QPushButton {

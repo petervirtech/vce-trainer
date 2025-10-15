@@ -237,19 +237,19 @@ class ResultsViewerWidget(QWidget):
         nav_layout = QHBoxLayout()
 
         # Back to main button
-        back_button = QPushButton("Back to Main Menu")
+        back_button = QPushButton("← Back to Main Menu")
         back_button.clicked.connect(self.back_to_main_menu)
         nav_layout.addWidget(back_button)
 
         nav_layout.addStretch()
 
         # Export results button
-        export_button = QPushButton("Export Results")
+        export_button = QPushButton("⤓ Export Results")
         export_button.clicked.connect(self.export_results)
         nav_layout.addWidget(export_button)
 
         # Finish review button
-        finish_button = QPushButton("Finish Review")
+        finish_button = QPushButton("✓ Finish Review")
         finish_button.clicked.connect(self.finish_review)
         nav_layout.addWidget(finish_button)
 
@@ -404,13 +404,13 @@ Correct Answers: {correct_answers}/{answered_questions}
                 if question.explanation:
                     if question.explanation.startswith("[Get AI explanation]"):
                         self.explanation_text.setPlainText(
-                            "This question was answered correctly! ✅\n\n"
+                            "This question was answered correctly! [CORRECT]\n\n"
                             f"Explanation:\n{question.explanation}\n\n"
-                            "💡 The Perplexity link provides additional learning context."
+                            "ⓘ The Perplexity link provides additional learning context."
                         )
                     else:
                         self.explanation_text.setPlainText(
-                            "This question was answered correctly! ✅\n\n"
+                            "This question was answered correctly! [CORRECT]\n\n"
                             f"Explanation:\n{question.explanation}"
                         )
                 else:
@@ -418,7 +418,7 @@ Correct Answers: {correct_answers}/{answered_questions}
         else:
             self.explanation_text.setPlainText(
                 "This question was not answered.\n"
-            f"Explanation:\n{question.explanation}
+             f"Explanation:\n{question.explanation}"
             )
 
     def format_answers_display(self, question, display_idx: int) -> str:
@@ -508,26 +508,27 @@ Correct Answers: {correct_answers}/{answered_questions}
 
     def back_to_main_menu(self):
         """Return to the main menu."""
-        reply = QMessageBox.question(
-            self,
-            'Back to Main Menu',
-            'Are you sure you want to return to the main menu?\n'
-            'The current session will remain available for review.',
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle('Back to Main Menu')
+        msg_box.setText('⚠ Are you sure you want to return to the main menu?')
+        msg_box.setInformativeText('The current session will remain available for review.')
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg_box.setDefaultButton(QMessageBox.StandardButton.No)
+        msg_box.setIcon(QMessageBox.Icon.Question)
+        
+        reply = msg_box.exec()
 
         if reply == QMessageBox.StandardButton.Yes:
             self.back_to_main.emit()
 
     def finish_review(self):
         """Finish the review session."""
-        QMessageBox.information(
-            self,
-            "Review Completed",
-            "Review session completed.\n"
-            "You can return to this session later for further review."
-        )
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Review Completed")
+        msg_box.setText("✓ Review session completed!")
+        msg_box.setInformativeText("You can return to this session later for further review.")
+        msg_box.setIcon(QMessageBox.Icon.Information)
+        msg_box.exec()
         self.review_completed.emit()
 
     def export_results(self):

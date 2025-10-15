@@ -151,18 +151,18 @@ class ExamTakerWidget(QWidget):
         nav_layout = QHBoxLayout()
 
         # Previous button
-        self.prev_button = QPushButton("Previous")
+        self.prev_button = QPushButton("← Previous")
         self.prev_button.clicked.connect(self.previous_question)
         nav_layout.addWidget(self.prev_button)
 
         # Mark for review button
-        self.mark_button = QPushButton("Mark for Review")
+        self.mark_button = QPushButton("⚑ Mark for Review")
         self.mark_button.setCheckable(True)
         self.mark_button.clicked.connect(self.toggle_mark_question)
         nav_layout.addWidget(self.mark_button)
 
         # Jump to question button
-        jump_button = QPushButton("Jump to Question (Ctrl+J)")
+        jump_button = QPushButton("⤴ Jump to Question (Ctrl+J)")
         jump_button.clicked.connect(self.show_jump_dialog)
         nav_layout.addWidget(jump_button)
 
@@ -170,7 +170,7 @@ class ExamTakerWidget(QWidget):
         nav_layout.addStretch()
 
         # Next button
-        self.next_button = QPushButton("Next")
+        self.next_button = QPushButton("Next →")
         self.next_button.clicked.connect(self.next_question)
         nav_layout.addWidget(self.next_button)
 
@@ -278,20 +278,22 @@ class ExamTakerWidget(QWidget):
     def on_time_warning(self, minutes_remaining: int):
         """Handle time warning."""
         from PyQt6.QtWidgets import QMessageBox
-        QMessageBox.warning(
-            self,
-            "Time Warning",
-            f"Only {minutes_remaining} minutes remaining!"
-        )
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Time Warning")
+        msg_box.setText(f"⏰ Only {minutes_remaining} minutes remaining!")
+        msg_box.setInformativeText("Please manage your time carefully.")
+        msg_box.setIcon(QMessageBox.Icon.Warning)
+        msg_box.exec()
 
     def on_time_expired(self):
         """Handle time expiration."""
         from PyQt6.QtWidgets import QMessageBox
-        QMessageBox.critical(
-            self,
-            "Time Expired",
-            "Time has expired! The exam will be submitted automatically."
-        )
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Time Expired")
+        msg_box.setText("⏰ Time has expired!")
+        msg_box.setInformativeText("The exam will be submitted automatically.")
+        msg_box.setIcon(QMessageBox.Icon.Critical)
+        msg_box.exec()
         self.complete_exam()
 
     def jump_to_question(self, question_num: int):
@@ -465,7 +467,7 @@ class ExamTakerWidget(QWidget):
     def update_navigation_buttons(self):
         """Update navigation button states."""
         self.prev_button.setEnabled(self.current_question_num > 1)
-        self.next_button.setText("Finish Exam" if self.current_question_num == len(self.player.question_order) else "Next")
+        self.next_button.setText("✓ Finish Exam" if self.current_question_num == len(self.player.question_order) else "Next →")
 
     def update_mark_button(self):
         """Update mark button state."""
@@ -485,14 +487,17 @@ class ExamTakerWidget(QWidget):
         score = result.get('score', 0)
         passed = result.get('passed', False)
 
-        QMessageBox.information(
-            self,
-            "Exam Completed",
-            f"Exam completed!\n\n"
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Exam Completed")
+        status_icon = "✓" if passed else "✗"
+        msg_box.setText(f"{status_icon} Exam completed!")
+        msg_box.setInformativeText(
             f"Final Score: {score}%\n"
-            f"Status: {'PASSED' if passed else 'FAILED'}\n\n"
+            f"Status: {'PASSED' if passed else 'FAILED'}\n"
             f"Session saved successfully."
         )
+        msg_box.setIcon(QMessageBox.Icon.Information)
+        msg_box.exec()
 
         self.exam_completed.emit()
 

@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QMessageBox, QStackedWidget, QCheckBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QAction, QKeySequence
+from PyQt6.QtGui import QAction, QKeySequence, QIcon, QPixmap, QPainter, QColor
 
 import json
 from pathlib import Path
@@ -63,11 +63,50 @@ class MainWindow(QMainWindow):
             traceback.print_exc()
             raise
 
+    def create_app_icon(self) -> QIcon:
+        """Create a simple application icon programmatically."""
+        # Create a 64x64 pixmap
+        pixmap = QPixmap(64, 64)
+        pixmap.fill(QColor(0, 0, 0, 0))  # Transparent background
+        
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Draw a modern exam/test icon
+        # Background circle
+        painter.setBrush(QColor(59, 130, 246))  # Blue background
+        painter.setPen(QColor(59, 130, 246))
+        painter.drawEllipse(4, 4, 56, 56)
+        
+        # Draw document/exam paper
+        painter.setBrush(QColor(255, 255, 255))
+        painter.setPen(QColor(255, 255, 255))
+        painter.drawRect(18, 14, 28, 36)
+        
+        # Draw lines representing text/questions
+        painter.setPen(QColor(59, 130, 246))
+        painter.drawLine(22, 20, 42, 20)  # Title line
+        painter.drawLine(22, 26, 38, 26)  # Question line 1
+        painter.drawLine(22, 30, 40, 30)  # Question line 2
+        painter.drawLine(22, 34, 36, 34)  # Question line 3
+        
+        # Draw checkmark
+        painter.setPen(QColor(16, 185, 129))  # Green checkmark
+        painter.drawLine(24, 40, 28, 44)
+        painter.drawLine(28, 44, 36, 36)
+        
+        painter.end()
+        
+        return QIcon(pixmap)
+
     def setup_ui(self):
         """Set up the main user interface."""
         self.setWindowTitle("VCE Exam Player")
         self.setMinimumSize(1000, 700)
         self.resize(1200, 800)
+        
+        # Set application icon
+        self.setWindowIcon(self.create_app_icon())
 
         # Create central widget with stacked layout for different screens
         self.central_widget = QWidget()
@@ -94,11 +133,18 @@ class MainWindow(QMainWindow):
         title_container_layout = QHBoxLayout(title_container)
         title_container_layout.setContentsMargins(0, 0, 0, 0)
         
-        # App icon (using emoji for now)
-        icon_label = QLabel("🎓")
+        # App icon (modern text-based)
+        icon_label = QLabel("VCE")
         icon_label.setStyleSheet("""
-            font-size: 32px;
-            padding: 8px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #3B82F6;
+            background-color: rgba(59, 130, 246, 0.1);
+            border: 2px solid #3B82F6;
+            border-radius: 8px;
+            padding: 6px 8px;
+            min-width: 40px;
+            text-align: center;
         """)
         title_container_layout.addWidget(icon_label)
         
@@ -121,7 +167,7 @@ class MainWindow(QMainWindow):
         header_layout.addStretch()
 
         # Modern action button with icon
-        self.load_button = QPushButton("📁 Load VCE File")
+        self.load_button = QPushButton("⊞ Load VCE File")
         self.load_button.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -409,13 +455,15 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """Handle application close event."""
-        reply = QMessageBox.question(
-            self,
-            'Confirm Exit',
-            'Are you sure you want to exit?',
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle('Confirm Exit')
+        msg_box.setText('⚠ Are you sure you want to exit?')
+        msg_box.setInformativeText('Any unsaved progress will be lost.')
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg_box.setDefaultButton(QMessageBox.StandardButton.No)
+        msg_box.setIcon(QMessageBox.Icon.Question)
+        
+        reply = msg_box.exec()
 
         if reply == QMessageBox.StandardButton.Yes:
             event.accept()

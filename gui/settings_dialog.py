@@ -94,7 +94,7 @@ class SettingsDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
-        save_button = QPushButton("Save Settings")
+        save_button = QPushButton("✓ Save Settings")
         save_button.setStyleSheet("""
             QPushButton {
                 background-color: #FB8C00;
@@ -112,7 +112,7 @@ class SettingsDialog(QDialog):
         save_button.clicked.connect(self.accept)
         button_layout.addWidget(save_button)
 
-        cancel_button = QPushButton("Cancel")
+        cancel_button = QPushButton("✕ Cancel")
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
 
